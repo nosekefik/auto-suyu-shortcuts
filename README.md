@@ -1,12 +1,12 @@
 # auto-suyu-shortcuts
 
-![](https://github.com/xpid2k/auto-suyu-shortcuts/blob/main/example.gif)
+![](https://github.com/nosekefik/auto-suyu-shortcuts/blob/main/example.gif)
 
 ## Downloading a Prebuilt Executable
 
-If you don't want to install Python and the dependencies required to run this script, you can download a prebuilt executable from the [releases page](https://github.com/xpid2k/auto-suyu-shortcuts/releases) of this repository.
+If you don't want to install Python and the dependencies required to run this script, you can download a prebuilt executable from the [releases page](https://github.com/nosekefik/auto-suyu-shortcuts/releases) of this repository.
 
-After you [obtain a SteamGridDB API key](https://github.com/xpid2k/auto-suyu-shortcuts#obtaining-a-steamgriddb-api-key), simply download the latest release and run the `auto_sysh.exe` file.
+After you [obtain a SteamGridDB API key](#obtaining-a-steamgriddb-api-key), simply download the latest release and run the `auto_sysh.exe` file.
 
 ## Getting Started
 
