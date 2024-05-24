@@ -1,0 +1,1 @@
+pyinstaller --onefile auto_sysh.py --collect-data sv_ttk

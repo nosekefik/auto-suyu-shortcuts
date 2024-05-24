@@ -8,11 +8,12 @@ from steamgrid import SteamGridDB
 from PIL import Image
 import requests
 from io import BytesIO
+from tkinter import messagebox
+from tkinter.simpledialog import askstring
 
 import sv_ttk
 
 # Read values from config file
-
 import configparser
 
 config_file_path = 'config_sysh.ini'
@@ -27,9 +28,10 @@ if not os.path.exists(config_file_path):
         configfile.write('SuyuDirectory=\n')
         configfile.write('SteamGridDBAPIKey=\n')
         configfile.write('GamesDirectory=\n')
+        configfile.write('GamesDirectoryRecursive=0\n')
         configfile.write('SecondaryGamesDirectory=\n')
-        configfile.write('ShortcutsDirectory=\n')
-        configfile.write('ShortcutsDirectory='+os.path.join(os.path.join(os.path.expanduser('~')), 'Desktop'))
+        configfile.write('SecondaryGamesDirectoryRecursive=0\n')
+        configfile.write('ShortcutsDirectory=')
 
 config = configparser.ConfigParser()
 config.read(config_file_path)
@@ -37,15 +39,21 @@ config.read(config_file_path)
 suyu_directory = config.get('DEFAULT', 'SuyuDirectory', fallback=None)
 
 def read_api_key_from_file():
-    api_key = config.get('DEFAULT', 'steamgriddbapikey', fallback=None)
+    api_key = config.get('DEFAULT', 'SteamGridDBAPIKey', fallback=None)
     if not api_key:
-        print("SteamGridDB API key not found. Please add your SteamGridDB API key to the 'config_sysh.ini' file.")
+        api_key = askstring('SteamGridDB API key', 'Enter your SteamGridDB API key')
+        config.set('DEFAULT', 'SteamGridDBAPIKey', api_key)
+        with open('config_sysh.ini', 'w') as configfile:
+            config.write(configfile)
+
+    if not api_key:
+        messagebox.showerror(title="SteamGridDB API key not found.", message="Please add your SteamGridDB API key to the 'config_sysh.ini' file.")
         logging.error("SteamGridDB API key not found in config file.")
     return api_key
 
 logging.basicConfig(filename='suyu_shortcuts.log', level=logging.INFO)
 
-def create_shortcut(emulator_path, game_path, game_name, shortcuts_directory):
+def create_shortcut(emulator_path, game_path, game_name, shortcuts_directory,api_key):
     print("Creating shortcut...")
     
     # Create a shortcut for the emulator .exe
@@ -59,12 +67,9 @@ def create_shortcut(emulator_path, game_path, game_name, shortcuts_directory):
     shortcut.Arguments = f'-u 1 -f -g "{game_path}"'
     
     # Use the SteamGridDB API to get an icon for the game
-    api_key = read_api_key_from_file()
-    if api_key:
-        sgdb = SteamGridDB(api_key)
-    else:
+    if not api_key:
         return
-    
+    sgdb = SteamGridDB(api_key)
     try:
         # Search for the game on SteamGridDB
         results = sgdb.search_game(game_name)
@@ -109,9 +114,10 @@ def create_shortcut(emulator_path, game_path, game_name, shortcuts_directory):
                     shortcut.IconLocation = icon_path
                     
                     print(f"Icon location: {shortcut.IconLocation}")
+                    return shortcut_name;
     
     except Exception as e:
-        print(f"Error getting icon from SteamGridDB: {e}")
+        messagebox.showerror(message=f"Error getting icon from SteamGridDB: {e}")
         logging.error(f"Error getting icon from SteamGridDB: {e}")
     
     if not shortcut.IconLocation:
@@ -123,29 +129,40 @@ def create_shortcut(emulator_path, game_path, game_name, shortcuts_directory):
     print(f"Shortcut created: {shortcut_path}")
     logging.info(f"Shortcut created: {shortcut_path}")
 
-def create_shortcuts_for_directory(emulator_path, games_directories, shortcuts_directory):
+def create_shortcuts_for_directory(emulator_path, games_directories, shortcuts_directory,api_key):
+    if not api_key:
+        return
     # Create a set to keep track of existing shortcuts in the specified directory
-    existing_shortcuts = set(os.path.splitext(shortcut)[0] for shortcut in os.listdir(shortcuts_directory))
+    existing_shortcuts = [os.path.basename(item) for item in list_files(shortcuts_directory, ['.lnk'],False)]
     
     # Create a shortcut for each game in the specified directories
     for games_directory in games_directories:
-        for game_file in os.listdir(games_directory):
-            game_path = os.path.join(games_directory, game_file)
-
-            # Skip files that are not NSP or XCI
-            if not game_file.lower().endswith(('.nsp', '.xci')):
-                continue
-
-            game_name = os.path.splitext(game_file)[0]
+        for game_file in list_files(games_directory['dir'], ['.nsp', '.xci'], recursive=games_directory['recursive']):
+            game_name = os.path.splitext(os.path.basename(game_file))[0]
             
             # Check if a shortcut already exists for this game
             if game_name in existing_shortcuts:
                 continue
             
-            create_shortcut(emulator_path, game_path, game_name, shortcuts_directory)
+            shortcut=create_shortcut(emulator_path, game_file, game_name, shortcuts_directory,api_key)
             
             # Add the game name to the set of existing shortcuts
-            existing_shortcuts.add(game_name)
+            existing_shortcuts.append(shortcut)
+    messagebox.showinfo("Information","Shortcuts created")
+
+def list_files(path, extensions, recursive=False):
+    found_files = []
+    if recursive:
+        for root, dirs, files in os.walk(path):
+            for file in files:
+                if any(file.lower().endswith(ext.lower()) for ext in extensions):
+                    found_files.append(os.path.join(root, file))
+    else:
+        for file in os.listdir(path):
+            if any(file.lower().endswith(ext.lower()) for ext in extensions):
+                found_files.append(os.path.join(path, file))
+    return found_files
+
 
 def select_emulator_path():
     # Automatically set the emulator directory to the default location
@@ -155,7 +172,7 @@ def select_emulator_path():
     
     # Validate that the selected file is a valid suyu emulator executable
     if "suyu.exe" not in emulator_path:
-        print("Invalid suyu emulator executable.")
+        messagebox.showerror(title="Invalid suyu emulator executable.",message="Executable suyu.exe not found in folder")
         logging.error("Invalid suyu emulator executable.")
         return
     
@@ -179,6 +196,16 @@ def select_games_directory():
     # Clear the entry and insert the selected directory
     games_directory_entry.delete(0, tk.END)
     games_directory_entry.insert(tk.END, games_directory)
+
+def select_games_directory_recursive():    
+    config.set('DEFAULT', 'GamesDirectoryRecursive', str(subdirectories_var.get()))
+    with open('config_sysh.ini', 'w') as configfile:
+        config.write(configfile)
+    
+def select_games_directory_recursive_sec():    
+    config.set('DEFAULT', 'SecondaryGamesDirectoryRecursive', str(subdirectories_var_sec.get()))
+    with open('config_sysh.ini', 'w') as configfile:
+        config.write(configfile)
 
 def select_secondary_games_directory():
     # Use askdirectory to allow the user to select a single directory
@@ -214,26 +241,25 @@ def create_shortcuts():
     secondary_games_directory = secondary_games_directory_entry.get()
     
     # Combine the primary and secondary directories into a list of directories
-    games_directories = [primary_games_directory]
+    games_directories = [{"dir":primary_games_directory,"recursive":subdirectories_var.get()==1}]
     
     if secondary_games_directory:
-        games_directories.append(secondary_games_directory)
+        games_directories.append({"dir":secondary_games_directory,"recursive":subdirectories_var_sec.get()==1})    
     
     shortcuts_directory = shortcuts_directory_entry.get()
-
-    if not os.path.isfile(emulator_path) or not all(os.path.exists(games_directory) for games_directory in games_directories) or not os.path.exists(shortcuts_directory):
-        print("Invalid paths.")
+    if not os.path.isfile(emulator_path) or not all(os.path.exists(games_directory['dir']) for games_directory in games_directories) or not os.path.exists(shortcuts_directory):
+        messagebox.showerror(title="Invalid paths.",message="Check all directory condiguration")
         logging.error("Invalid paths.")
-        return
-
-    create_shortcuts_for_directory(emulator_path, games_directories, shortcuts_directory)
+        return       
+    create_shortcuts_for_directory(emulator_path, games_directories, shortcuts_directory,read_api_key_from_file())
 
 window = tk.Tk()
 window.title("Auto Suyu Shortcuts")
-window.geometry("424x454")
+window.geometry("424x520")
 window.resizable(False, False)
 
 sv_ttk.set_theme("dark")
+
 
 emulator_entry = tk.Entry(window,width=70)
 if suyu_directory:
@@ -243,20 +269,28 @@ emulator_entry.grid(row=2, column=0, columnspan=4, pady=10)
 emulator_button = ttk.Button(window,text="Select suyu.exe",command = select_emulator_path,width=40)
 emulator_button.grid(row=1, column=0, columnspan=4,pady=10)
 
+subdirectories_var = tk.IntVar(value=config.getint('DEFAULT', 'GamesDirectoryRecursive', fallback=0))
+subdirectories_checkbox = ttk.Checkbutton(window, text="Recursive?", variable=subdirectories_var, command=select_games_directory_recursive)
+subdirectories_checkbox.grid(row=4, column=0, pady=10)
+
 games_directory_entry=tk.Entry(window,width=50)
 games_directory=config.get('DEFAULT','GamesDirectory',fallback=None)
 if games_directory:
         games_directory_entry.insert(tk.END,games_directory)
-games_directory_entry.grid(row=4,column=0,columnspan=4,pady=10)
+games_directory_entry.grid(row=4,column=1,columnspan=3,pady=10)
 
 games_directory_button=ttk.Button(window,text="Select Primary Games Directory",command=select_games_directory,width=40)
 games_directory_button.grid(row=3,column=0,columnspan=4,pady=10)
+
+subdirectories_var_sec = tk.IntVar(value=config.getint('DEFAULT', 'SecondaryGamesDirectoryRecursive', fallback=0))
+subdirectories_checkbox_sec = ttk.Checkbutton(window, text="Recursive?", variable=subdirectories_var_sec, command=select_games_directory_recursive_sec)
+subdirectories_checkbox_sec.grid(row=6, column=0, pady=10)
 
 secondary_games_directory_entry=tk.Entry(window,width=50)
 secondary_games_directory=config.get('DEFAULT','SecondaryGamesDirectory',fallback=None)
 if secondary_games_directory:
     secondary_games_directory_entry.insert(tk.END,secondary_games_directory)
-secondary_games_directory_entry.grid(row=6,column=0,columnspan=4,pady=10)
+secondary_games_directory_entry.grid(row=6,column=1,columnspan=3,pady=10)
 
 secondary_games_directory_button=ttk.Button(window,text="Select Secondary Games Directory (Optional)",command=select_secondary_games_directory,width=40)
 secondary_games_directory_button.grid(row=5,column=0,columnspan=4,pady=10)
