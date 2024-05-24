@@ -1,5 +1,4 @@
 import os
-import shutil
 import tkinter as tk
 from tkinter import filedialog
 from tkinter import ttk
@@ -30,15 +29,15 @@ if not os.path.exists(config_file_path):
         configfile.write('GamesDirectory=\n')
         configfile.write('SecondaryGamesDirectory=\n')
         configfile.write('ShortcutsDirectory=\n')
+        configfile.write('ShortcutsDirectory='+os.path.join(os.path.join(os.path.expanduser('~')), 'Desktop'))
 
 config = configparser.ConfigParser()
 config.read(config_file_path)
 
 suyu_directory = config.get('DEFAULT', 'SuyuDirectory', fallback=None)
-steamgriddb_api_key = config.get('DEFAULT', 'steamgriddbapikey', fallback=None)
 
 def read_api_key_from_file():
-    api_key = steamgriddb_api_key
+    api_key = config.get('DEFAULT', 'steamgriddbapikey', fallback=None)
     if not api_key:
         print("SteamGridDB API key not found. Please add your SteamGridDB API key to the 'config_sysh.ini' file.")
         logging.error("SteamGridDB API key not found in config file.")
@@ -195,7 +194,7 @@ def select_secondary_games_directory():
     secondary_games_directory_entry.insert(tk.END, secondary_games_directory)
 
 def select_shortcuts_directory():
-    default_shortcuts_dir = os.path.expanduser("~/Desktop")
+    default_shortcuts_dir = os.path.join(os.path.join(os.path.expanduser('~')), 'Desktop')
     shortcuts_directory = filedialog.askdirectory(initialdir=default_shortcuts_dir)
     
     # Save the selected shortcuts directory to the config file
@@ -234,7 +233,6 @@ window.title("Auto Suyu Shortcuts")
 window.geometry("424x454")
 window.resizable(False, False)
 
-style = ttk.Style()
 sv_ttk.set_theme("dark")
 
 emulator_entry = tk.Entry(window,width=70)
