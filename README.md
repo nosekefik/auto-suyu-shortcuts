@@ -16,15 +16,15 @@ After you [obtain a SteamGridDB API key](#obtaining-a-steamgriddb-api-key), simp
 ## Using the Script
 
 1. Run the `auto_sysh.py` script to open the GUI.
-2. In the GUI, enter the path to your Suyu emulator in the `Select suyu.exe` field.
+2. In the GUI, enter the path to your Suyu or Sudachi emulator in the `Select emulator exe` field.
 3. Select your primary games directory by clicking the `Select Primary Games Directory` button. (Optionally, you can select a secondary games directory.)
 4. Select the directory where you want to save your shortcuts by clicking the `Select Shortcuts Directory` button.
 5. Select the size of the icons from the `Icon Size` dropdown menu. (64x64 is the best option for 1080p displays)
-6. Click the `Create Shortcuts` button and voila! You now have shortcuts for your Suyu games.
+6. Click the `Create Shortcuts` button and voila! You now have shortcuts for your Suyu or Sudachi games.
 
 ## Obtaining a SteamGridDB API Key
 
-This script uses the SteamGridDB API to automatically assign icons to your Suyu game shortcuts. To use this feature, you will need to obtain a SteamGridDB API key.
+This script uses the SteamGridDB API to automatically assign icons to your Suyu or Sudachi game shortcuts. To use this feature, you will need to obtain a SteamGridDB API key.
 
 Here's how you can obtain a SteamGridDB API key:
 
