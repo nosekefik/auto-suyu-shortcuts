@@ -3,3 +3,5 @@ build/
 dist/
 auto_sysh.spec
 config_sysh.ini
+out/
+shortcuts.log

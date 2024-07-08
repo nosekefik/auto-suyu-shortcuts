@@ -25,7 +25,7 @@ if not os.path.exists(config_file_path):
     # If the config file doesn't exist, create it with default values
     with open(config_file_path, 'w') as configfile:
         configfile.write('[DEFAULT]\n')
-        configfile.write('SuyuDirectory=\n')
+        configfile.write('EmulatorDirectory=\n')
         configfile.write('SteamGridDBAPIKey=\n')
         configfile.write('GamesDirectory=\n')
         configfile.write('GamesDirectoryRecursive=0\n')
@@ -36,7 +36,7 @@ if not os.path.exists(config_file_path):
 config = configparser.ConfigParser()
 config.read(config_file_path)
 
-suyu_directory = config.get('DEFAULT', 'SuyuDirectory', fallback=None)
+emu_directory = config.get('DEFAULT', 'EmulatorDirectory', fallback=None)
 
 def read_api_key_from_file():
     api_key = config.get('DEFAULT', 'SteamGridDBAPIKey', fallback=None)
@@ -51,7 +51,7 @@ def read_api_key_from_file():
         logging.error("SteamGridDB API key not found in config file.")
     return api_key
 
-logging.basicConfig(filename='suyu_shortcuts.log', level=logging.INFO)
+logging.basicConfig(filename='shortcuts.log', level=logging.INFO)
 
 def create_shortcut(emulator_path, game_path, game_name, shortcuts_directory,api_key):
     print("Creating shortcut...")
@@ -114,6 +114,8 @@ def create_shortcut(emulator_path, game_path, game_name, shortcuts_directory,api
                     shortcut.IconLocation = icon_path
                     
                     print(f"Icon location: {shortcut.IconLocation}")
+                    shortcut.save()
+
                     return shortcut_name;
     
     except Exception as e:
@@ -121,7 +123,7 @@ def create_shortcut(emulator_path, game_path, game_name, shortcuts_directory,api
         logging.error(f"Error getting icon from SteamGridDB: {e}")
     
     if not shortcut.IconLocation:
-        # If no icon was found on SteamGridDB, use the default suyu icon
+        # If no icon was found on SteamGridDB, use the default emu icon
         shortcut.IconLocation = emulator_path
     
     shortcut.WorkingDirectory = os.path.dirname(game_path)
@@ -170,14 +172,14 @@ def select_emulator_path():
     # emulator_path = filedialog.askopenfilename(initialdir=default_emulator_dir, filetypes=[("Executable Files", "*.exe")])
     emulator_path = filedialog.askopenfilename(filetypes=[("Executable Files", "*.exe")])
     
-    # Validate that the selected file is a valid suyu emulator executable
-    if "suyu.exe" not in emulator_path:
-        messagebox.showerror(title="Invalid suyu emulator executable.",message="Executable suyu.exe not found in folder")
-        logging.error("Invalid suyu emulator executable.")
+    # Validate that the selected file is a valid emulator executable
+    if "suyu.exe" not in emulator_path and "sudachi.exe" not in emulator_path:
+        messagebox.showerror(title="Invalid emulator executable.",message="Executable not found in folder")
+        logging.error("Invalid emulator executable.")
         return
     
-    # Save the selected Suyu directory to the config file
-    config.set('DEFAULT', 'SuyuDirectory', emulator_path)
+    # Save the selected directory to the config file
+    config.set('DEFAULT', 'EmulatorDirectory', emulator_path)
     with open('config_sysh.ini', 'w') as configfile:
         config.write(configfile)
     
@@ -254,7 +256,7 @@ def create_shortcuts():
     create_shortcuts_for_directory(emulator_path, games_directories, shortcuts_directory,read_api_key_from_file())
 
 window = tk.Tk()
-window.title("Auto Suyu Shortcuts")
+window.title("Auto Shortcuts")
 window.geometry("424x520")
 window.resizable(False, False)
 
@@ -262,11 +264,11 @@ sv_ttk.set_theme("dark")
 
 
 emulator_entry = tk.Entry(window,width=70)
-if suyu_directory:
-    emulator_entry.insert(tk.END, suyu_directory)
+if emu_directory:
+    emulator_entry.insert(tk.END, emu_directory)
 emulator_entry.grid(row=2, column=0, columnspan=4, pady=10)
 
-emulator_button = ttk.Button(window,text="Select suyu.exe",command = select_emulator_path,width=40)
+emulator_button = ttk.Button(window,text="Select emulator exe",command = select_emulator_path,width=40)
 emulator_button.grid(row=1, column=0, columnspan=4,pady=10)
 
 subdirectories_var = tk.IntVar(value=config.getint('DEFAULT', 'GamesDirectoryRecursive', fallback=0))
